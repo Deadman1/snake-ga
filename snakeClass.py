@@ -6,10 +6,11 @@ from keras.utils import to_categorical
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import random
 
 # Set options to activate or deactivate the game view, and its speed
 display_option = False
-speed = 10
+speed = 50
 pygame.font.init()
 
 class Game:
@@ -148,13 +149,14 @@ def update_screen():
 
 
 def initialize_game(player, game, food, agent):
+    random.seed(42)
     state_init1 = agent.get_state(game, player, food)  # [0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0]
     action = [1, 0, 0]
     player.do_move(action, player.x, player.y, game, food, agent)
     state_init2 = agent.get_state(game, player, food)
     reward1 = agent.set_reward(player, game.crash)
     agent.remember(state_init1, action, reward1, state_init2, game.crash)
-    agent.replay_new(agent.memory)
+    agent.replay_new()
 
 
 def plot_seaborn(array_counter, array_score):
@@ -164,7 +166,8 @@ def plot_seaborn(array_counter, array_score):
     plt.show()
 
 def run():
-    pygame.init()
+    if display_option:
+        pygame.init()
     agent = DQNAgent()
     counter_games = 0
     score_plot = []
@@ -175,13 +178,16 @@ def run():
         game = Game(440, 440)
         player1 = game.player
         food1 = game.food
+        pygame.event.get()
 
         # Perform first move
         initialize_game(player1, game, food1, agent)
         if display_option:
+        # if display_option and counter_games % 10 == 0:
             display(player1, food1, game, record)
 
         while not game.crash:
+            pygame.event.get()
             # agent.epsilon is set to give randomness to actions
             agent.epsilon = 80 - counter_games
 
@@ -200,7 +206,7 @@ def run():
             player1.do_move(final_move, player1.x, player1.y, game, food1, agent)
             state_new = agent.get_state(game, player1, food1)
 
-            # set treward for the new state
+            # set reward for the new state
             reward = agent.set_reward(player1, game.crash)
 
             # train short memory base on the new action and state
@@ -210,10 +216,11 @@ def run():
             agent.remember(state_old, final_move, reward, state_new, game.crash)
             record = get_record(game.score, record)
             if display_option:
+            # if display_option and counter_games % 10 == 0:
                 display(player1, food1, game, record)
                 pygame.time.wait(speed)
 
-        agent.replay_new(agent.memory)
+        agent.replay_new()
         counter_games += 1
         print('Game', counter_games, '      Score:', game.score)
         score_plot.append(game.score)
